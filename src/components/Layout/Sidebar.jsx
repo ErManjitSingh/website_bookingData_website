@@ -1,6 +1,10 @@
 import './Layout.css'
 
-const NAV_ITEMS = [{ id: 'bookings', label: 'My Booking', icon: '📋' }]
+const NAV_ITEMS = [
+  { id: 'bookings', label: 'My Booking', icon: '📋' },
+  { id: 'add-listing', label: 'Add Listing', icon: '➕' },
+  { id: 'all-listings', label: 'All Listings', icon: '📑' },
+]
 
 export default function Sidebar({ activeTab, onTabChange, isOpen, onClose, user, onLogout }) {
   return (

@@ -2,6 +2,12 @@ import { useState } from 'react'
 import Sidebar from './Sidebar'
 import './Layout.css'
 
+const PAGE_TITLES = {
+  bookings: 'My Booking',
+  'add-listing': 'Add Listing',
+  'all-listings': 'All Listings',
+}
+
 export default function Layout({ activeTab, onTabChange, user, onLogout, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -29,7 +35,7 @@ export default function Layout({ activeTab, onTabChange, user, onLogout, childre
             <span />
           </button>
           <h2 className="layout__page-title">
-            {activeTab === 'bookings' ? 'My Booking' : 'Dashboard'}
+            {PAGE_TITLES[activeTab] ?? 'Dashboard'}
           </h2>
         </header>
 
