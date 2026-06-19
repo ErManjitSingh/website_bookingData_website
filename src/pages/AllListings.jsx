@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { deleteListing, fetchAllListings } from '../api/seoListings'
 import { CATEGORY_OPTIONS } from '../constants/seoListing'
+import { normalizeCategory } from '../utils/seoListingForm'
 import './AllListings.css'
 
 function formatCategory(value) {
   if (!value) return '—'
-  const match = CATEGORY_OPTIONS.find((opt) => opt.value === value.toLowerCase().trim())
+  const normalized = normalizeCategory(value)
+  const match = CATEGORY_OPTIONS.find((opt) => opt.value === normalized)
   return match?.label ?? value
 }
 

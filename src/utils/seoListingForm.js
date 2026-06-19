@@ -1,4 +1,23 @@
-import { DEFAULT_LISTING } from '../constants/seoListing'
+import { DEFAULT_LISTING, CATEGORY_OPTIONS } from '../constants/seoListing'
+
+const CATEGORY_ALIASES = {
+  hotel: 'hotels',
+  'homestays & villas': 'homestay & villa',
+  'homestays and villas': 'homestay & villa',
+  bnb: 'airbnb',
+  bnbs: 'airbnb',
+}
+
+export function normalizeCategory(category) {
+  if (!category) return ''
+
+  const normalized = category.toLowerCase().trim()
+  if (CATEGORY_OPTIONS.some((opt) => opt.value === normalized)) {
+    return normalized
+  }
+
+  return CATEGORY_ALIASES[normalized] ?? normalized
+}
 
 export function uniqueLocations(list) {
   const seen = new Set()
@@ -34,7 +53,7 @@ export function listingToForm(listing) {
 
   return {
     locationType: listing.locationType ?? 'city',
-    category: listing.category ?? '',
+    category: normalizeCategory(listing.category),
     country: listing.country ?? 'India',
     state: listing.state ?? '',
     city: listing.city ?? '',
@@ -77,7 +96,7 @@ export function formToPayload(form) {
   return {
     ...form,
     slug: form.slug.toLowerCase().trim(),
-    category: form.category.toLowerCase().trim(),
+    category: normalizeCategory(form.category),
     state: form.locationType === 'state' ? form.state : form.state,
     city: form.locationType === 'city' ? form.city : '',
     latitude: Number.isFinite(latitude) ? latitude : null,

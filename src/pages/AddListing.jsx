@@ -224,6 +224,10 @@ export default function AddListing({ editId, onSaved, onCancelEdit }) {
                 onChange={(e) => update({ category: e.target.value })}
               >
                 <option value="">Select category</option>
+                {form.category &&
+                  !CATEGORY_OPTIONS.some((opt) => opt.value === form.category) && (
+                    <option value={form.category}>{form.category}</option>
+                  )}
                 {CATEGORY_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
