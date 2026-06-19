@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { deleteListing, fetchAllListings } from '../api/seoListings'
+import { CATEGORY_OPTIONS } from '../constants/seoListing'
 import './AllListings.css'
+
+function formatCategory(value) {
+  if (!value) return '—'
+  const match = CATEGORY_OPTIONS.find((opt) => opt.value === value.toLowerCase().trim())
+  return match?.label ?? value
+}
 
 export default function AllListings({ onEdit }) {
   const [listings, setListings] = useState([])
@@ -111,6 +118,7 @@ export default function AllListings({ onEdit }) {
                 <tr>
                   <th>Heading</th>
                   <th>Type</th>
+                  <th>Category</th>
                   <th>Location</th>
                   <th>Slug</th>
                   <th>Status</th>
@@ -124,6 +132,7 @@ export default function AllListings({ onEdit }) {
                     <td>
                       <span className="listings-table__type">{listing.locationType}</span>
                     </td>
+                    <td>{formatCategory(listing.category)}</td>
                     <td>
                       {listing.locationType === 'city'
                         ? `${listing.city}${listing.state ? `, ${listing.state}` : ''}`

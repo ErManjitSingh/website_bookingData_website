@@ -1,5 +1,11 @@
 export const LOCATION_TYPES = ['city', 'state']
 
+export const CATEGORY_OPTIONS = [
+  { label: 'Hotel', value: 'hotel' },
+  { label: 'HomeStays & Villas', value: 'homestays & villas' },
+  { label: 'BnBs', value: 'bnbs' },
+]
+
 export const SITEMAP_CHANGEFREQ_OPTIONS = [
   'always',
   'hourly',
@@ -12,6 +18,7 @@ export const SITEMAP_CHANGEFREQ_OPTIONS = [
 
 export const DEFAULT_LISTING = {
   locationType: 'city',
+  category: '',
   country: 'India',
   state: '',
   city: '',

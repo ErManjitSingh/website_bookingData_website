@@ -4,6 +4,7 @@ import { createListing, fetchListingById, updateListing } from '../api/seoListin
 import {
   DEFAULT_LISTING,
   LOCATION_TYPES,
+  CATEGORY_OPTIONS,
   SITEMAP_CHANGEFREQ_OPTIONS,
 } from '../constants/seoListing'
 import { formToPayload, listingToForm, slugify } from '../utils/seoListingForm'
@@ -212,6 +213,20 @@ export default function AddListing({ editId, onSaved, onCancelEdit }) {
                 {LOCATION_TYPES.map((type) => (
                   <option key={type} value={type}>
                     {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Category">
+              <select
+                value={form.category}
+                onChange={(e) => update({ category: e.target.value })}
+              >
+                <option value="">Select category</option>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
                   </option>
                 ))}
               </select>

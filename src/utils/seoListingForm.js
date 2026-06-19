@@ -34,6 +34,7 @@ export function listingToForm(listing) {
 
   return {
     locationType: listing.locationType ?? 'city',
+    category: listing.category ?? '',
     country: listing.country ?? 'India',
     state: listing.state ?? '',
     city: listing.city ?? '',
@@ -76,6 +77,7 @@ export function formToPayload(form) {
   return {
     ...form,
     slug: form.slug.toLowerCase().trim(),
+    category: form.category.toLowerCase().trim(),
     state: form.locationType === 'state' ? form.state : form.state,
     city: form.locationType === 'city' ? form.city : '',
     latitude: Number.isFinite(latitude) ? latitude : null,
