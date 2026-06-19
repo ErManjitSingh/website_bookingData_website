@@ -1,9 +1,9 @@
 export const LOCATION_TYPES = ['city', 'state']
 
 export const CATEGORY_OPTIONS = [
-  { label: 'Hotel', value: 'hotel' },
-  { label: 'HomeStays & Villas', value: 'homestays & villas' },
-  { label: 'BnBs', value: 'bnbs' },
+  { label: 'Hotels', value: 'Hotels' },
+  { label: 'HomeStay & Villa', value: 'HomeStay & Villa' },
+  { label: 'Airbnb', value: 'Airbnb' },
 ]
 
 export const SITEMAP_CHANGEFREQ_OPTIONS = [
