@@ -2,7 +2,7 @@ export const LOCATION_TYPES = ['city', 'state']
 
 export const CATEGORY_OPTIONS = [
   { label: 'Hotels', value: 'hotel' },
-  { label: 'HomeStay & Villa', value: 'homestay & villa' },
+  { label: 'HomeStay & Villa', value: 'homestay' },
   { label: 'Airbnb', value: 'airbnb' },
 ]
 
