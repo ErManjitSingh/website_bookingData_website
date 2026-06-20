@@ -9,11 +9,12 @@ import {
 } from '../constants/seoListing'
 import { formToPayload, listingToForm, slugify } from '../utils/seoListingForm'
 import ImageUpload from '../components/ImageUpload'
+import RichTextEditor, { isRichTextEmpty } from '../components/RichTextEditor'
 import './AddListing.css'
 
-function Field({ label, required, children, hint }) {
+function Field({ label, required, children, hint, fullWidth }) {
   return (
-    <label className="form-field">
+    <label className={`form-field ${fullWidth ? 'form-field--full' : ''}`}>
       <span className="form-field__label">
         {label}
         {required && <span className="form-field__required">*</span>}
@@ -118,6 +119,18 @@ export default function AddListing({ editId, onSaved, onCancelEdit }) {
     setSaving(true)
     setError(null)
     setSuccess(null)
+
+    if (isRichTextEmpty(form.metaDescription)) {
+      setError('Meta Description is required')
+      setSaving(false)
+      return
+    }
+
+    if (isRichTextEmpty(form.aboutLocation)) {
+      setError('About Location is required')
+      setSaving(false)
+      return
+    }
 
     try {
       const payload = formToPayload(form)
@@ -314,12 +327,12 @@ export default function AddListing({ editId, onSaved, onCancelEdit }) {
                 onChange={(e) => update({ focusKeyword: e.target.value })}
               />
             </Field>
-            <Field label="Meta Description" required>
-              <textarea
+            <Field label="Meta Description" required fullWidth>
+              <RichTextEditor
                 value={form.metaDescription}
-                onChange={(e) => update({ metaDescription: e.target.value })}
-                rows={3}
-                required
+                onChange={(value) => update({ metaDescription: value })}
+                placeholder="Write meta description…"
+                minHeight={120}
               />
             </Field>
             <Field label="Meta Keywords">
@@ -356,40 +369,44 @@ export default function AddListing({ editId, onSaved, onCancelEdit }) {
                 required
               />
             </Field>
-            <Field label="Sub Heading">
-              <input
-                type="text"
+            <Field label="Sub Heading" fullWidth>
+              <RichTextEditor
                 value={form.subHeading}
-                onChange={(e) => update({ subHeading: e.target.value })}
+                onChange={(value) => update({ subHeading: value })}
+                placeholder="Write sub heading…"
+                minHeight={100}
               />
             </Field>
-            <Field label="About Location" required>
-              <textarea
+            <Field label="About Location" required fullWidth>
+              <RichTextEditor
                 value={form.aboutLocation}
-                onChange={(e) => update({ aboutLocation: e.target.value })}
-                rows={5}
-                required
+                onChange={(value) => update({ aboutLocation: value })}
+                placeholder="Write about this location…"
+                minHeight={220}
               />
             </Field>
-            <Field label="Best Time to Visit">
-              <textarea
+            <Field label="Best Time to Visit" fullWidth>
+              <RichTextEditor
                 value={form.bestTimeToVisit}
-                onChange={(e) => update({ bestTimeToVisit: e.target.value })}
-                rows={2}
+                onChange={(value) => update({ bestTimeToVisit: value })}
+                placeholder="Best time to visit…"
+                minHeight={120}
               />
             </Field>
-            <Field label="How to Reach">
-              <textarea
+            <Field label="How to Reach" fullWidth>
+              <RichTextEditor
                 value={form.howToReach}
-                onChange={(e) => update({ howToReach: e.target.value })}
-                rows={2}
+                onChange={(value) => update({ howToReach: value })}
+                placeholder="How to reach…"
+                minHeight={120}
               />
             </Field>
-            <Field label="Travel Tips">
-              <textarea
+            <Field label="Travel Tips" fullWidth>
+              <RichTextEditor
                 value={form.travelTips}
-                onChange={(e) => update({ travelTips: e.target.value })}
-                rows={2}
+                onChange={(value) => update({ travelTips: value })}
+                placeholder="Travel tips…"
+                minHeight={120}
               />
             </Field>
             <Field label="Highlights">
@@ -425,11 +442,12 @@ export default function AddListing({ editId, onSaved, onCancelEdit }) {
                   onChange={(e) => updateFaq(i, 'question', e.target.value)}
                 />
               </Field>
-              <Field label="Answer" required>
-                <textarea
+              <Field label="Answer" required fullWidth>
+                <RichTextEditor
                   value={faq.answer}
-                  onChange={(e) => updateFaq(i, 'answer', e.target.value)}
-                  rows={2}
+                  onChange={(value) => updateFaq(i, 'answer', value)}
+                  placeholder="Write the answer…"
+                  minHeight={120}
                 />
               </Field>
             </div>

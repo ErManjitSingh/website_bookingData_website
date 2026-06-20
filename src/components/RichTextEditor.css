@@ -1,0 +1,28 @@
+.rich-text-editor__container .ql-toolbar.ql-snow {
+  border: 1px solid var(--border);
+  border-radius: 8px 8px 0 0;
+  background: var(--bg-page);
+}
+
+.rich-text-editor__container .ql-container.ql-snow {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  font-family: inherit;
+  font-size: 14px;
+  background: var(--bg-card);
+}
+
+.rich-text-editor__container .ql-editor {
+  min-height: var(--editor-min-height, 160px);
+  color: var(--text-primary);
+}
+
+.rich-text-editor__container .ql-editor.ql-blank::before {
+  color: var(--text-secondary);
+  font-style: normal;
+}
+
+.form-field--full {
+  grid-column: 1 / -1;
+}
