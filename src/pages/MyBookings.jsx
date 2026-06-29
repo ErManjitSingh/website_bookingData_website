@@ -56,6 +56,88 @@ function toDateKey(isoString) {
   return new Date(isoString).toISOString().slice(0, 10)
 }
 
+function getCustomerResponseInfo(booking) {
+  const response = booking.customerResponse
+
+  if (!response || (!response.status && !response.note)) {
+    return {
+      hasResponse: false,
+      isCancelled: false,
+      label: 'No Response',
+      status: null,
+      note: null,
+    }
+  }
+
+  const status = (response.status ?? '').toLowerCase().trim()
+  const isCancelled = status === 'cancel' || status === 'cancelled'
+  const note = response.note?.trim()
+  const hasNote = note && note.toLowerCase() !== 'na'
+
+  return {
+    hasResponse: true,
+    isCancelled,
+    label: isCancelled ? 'Cancelled' : status || 'Response',
+    status: response.status,
+    note: hasNote ? note : null,
+  }
+}
+
+function CustomerResponseBadge({ booking }) {
+  const info = getCustomerResponseInfo(booking)
+
+  if (!info.hasResponse) {
+    return <span className="mmt-badge mmt-badge--customer mmt-badge--empty">No Response</span>
+  }
+
+  return (
+    <span
+      className={`mmt-badge mmt-badge--customer ${info.isCancelled ? 'mmt-badge--cancelled' : 'mmt-badge--responded'}`}
+    >
+      {info.label}
+    </span>
+  )
+}
+
+function CustomerResponsePanel({ booking }) {
+  const info = getCustomerResponseInfo(booking)
+
+  return (
+    <section className="mmt-panel mmt-panel--customer-response">
+      <h3 className="mmt-panel__title">Customer Response</h3>
+      <div
+        className={`mmt-customer-response ${info.isCancelled ? 'mmt-customer-response--cancelled' : ''} ${!info.hasResponse ? 'mmt-customer-response--empty' : ''}`}
+      >
+        <div className="mmt-customer-response__status">
+          <span>Status</span>
+          <CustomerResponseBadge booking={booking} />
+        </div>
+        {info.hasResponse && info.note ? (
+          <div className="mmt-customer-response__note">
+            <span>Note</span>
+            <p>{info.note}</p>
+          </div>
+        ) : (
+          <p className="mmt-customer-response__empty-text">
+            {info.hasResponse
+              ? 'Customer has responded. No additional note provided.'
+              : 'Customer has not submitted a response yet.'}
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function LabeledBadge({ label, children }) {
+  return (
+    <div className="mmt-labeled-badge">
+      <span className="mmt-labeled-badge__label">{label}</span>
+      {children}
+    </div>
+  )
+}
+
 function StatusBadge({ status, type }) {
   const normalized = normalizeStatus(status)
   return (
@@ -70,7 +152,8 @@ function BookingFilters({ filters, onChange, onClear }) {
     filters.dateFrom ||
     filters.dateTo ||
     filters.payment !== 'all' ||
-    filters.tourCompleted !== 'all'
+    filters.tourCompleted !== 'all' ||
+    filters.customerCancelled !== 'all'
 
   return (
     <div className="mmt-filters">
@@ -125,6 +208,17 @@ function BookingFilters({ filters, onChange, onClear }) {
                 {opt.charAt(0).toUpperCase() + opt.slice(1)}
               </option>
             ))}
+          </select>
+        </label>
+        <label className="mmt-filters__field">
+          <span>Cancelled Booking</span>
+          <select
+            value={filters.customerCancelled}
+            onChange={(e) => onChange({ ...filters, customerCancelled: e.target.value })}
+          >
+            <option value="all">All Bookings</option>
+            <option value="cancelled">Cancelled Only</option>
+            <option value="active">Not Cancelled</option>
           </select>
         </label>
       </div>
@@ -190,8 +284,15 @@ function BookingDetailModal({ booking, onClose, onTourStatusUpdate }) {
             <h2 id="booking-modal-title">{booking.property.title}</h2>
             <p className="mmt-modal__location">{booking.property.location}</p>
             <div className="mmt-modal__badges">
-              <StatusBadge status={booking.payment} type="payment" />
-              <StatusBadge status={booking.tourCompleted} type="tour" />
+              <LabeledBadge label="Payment Status">
+                <StatusBadge status={booking.payment} type="payment" />
+              </LabeledBadge>
+              <LabeledBadge label="Tour Status">
+                <StatusBadge status={booking.tourCompleted} type="tour" />
+              </LabeledBadge>
+              <LabeledBadge label="Customer Response">
+                <CustomerResponseBadge booking={booking} />
+              </LabeledBadge>
             </div>
           </div>
           <button type="button" className="mmt-modal__close" onClick={onClose} aria-label="Close">
@@ -234,6 +335,8 @@ function BookingDetailModal({ booking, onClose, onTourStatusUpdate }) {
               <strong>{roomSummary || '—'}</strong>
             </div>
           </div>
+
+          <CustomerResponsePanel booking={booking} />
 
           <div className="mmt-modal__grid">
             <section className="mmt-panel">
@@ -356,9 +459,10 @@ function BookingDetailModal({ booking, onClose, onTourStatusUpdate }) {
 function BookingCard({ booking, onViewDetail, onDelete, deleting }) {
   const roomName = booking.rooms?.[0]?.roomName ?? 'Hotel Room'
   const customerTotal = getCustomerPayableTotal(booking)
+  const isCancelled = getCustomerResponseInfo(booking).isCancelled
 
   return (
-    <article className="mmt-trip-card">
+    <article className={`mmt-trip-card ${isCancelled ? 'mmt-trip-card--cancelled' : ''}`}>
       <div className="mmt-trip-card__top">
         <div className="mmt-trip-card__top-left">
           <span className="mmt-trip-card__id">
@@ -375,8 +479,15 @@ function BookingCard({ booking, onViewDetail, onDelete, deleting }) {
           </span>
         </div>
         <div className="mmt-trip-card__badges">
-          <StatusBadge status={booking.payment} type="payment" />
-          <StatusBadge status={booking.tourCompleted} type="tour" />
+          <LabeledBadge label="Payment Status">
+            <StatusBadge status={booking.payment} type="payment" />
+          </LabeledBadge>
+          <LabeledBadge label="Tour Status">
+            <StatusBadge status={booking.tourCompleted} type="tour" />
+          </LabeledBadge>
+          <LabeledBadge label="Customer Response">
+            <CustomerResponseBadge booking={booking} />
+          </LabeledBadge>
         </div>
       </div>
 
@@ -446,11 +557,13 @@ const DEFAULT_FILTERS = {
   dateTo: '',
   payment: 'all',
   tourCompleted: 'all',
+  customerCancelled: 'all',
 }
 
 function filterBookings(bookings, filters) {
   return bookings.filter((booking) => {
     const createdDate = toDateKey(booking.createdAt)
+    const isCancelled = getCustomerResponseInfo(booking).isCancelled
 
     if (filters.dateFrom && createdDate < filters.dateFrom) return false
     if (filters.dateTo && createdDate > filters.dateTo) return false
@@ -465,6 +578,9 @@ function filterBookings(bookings, filters) {
     ) {
       return false
     }
+
+    if (filters.customerCancelled === 'cancelled' && !isCancelled) return false
+    if (filters.customerCancelled === 'active' && isCancelled) return false
 
     return true
   })

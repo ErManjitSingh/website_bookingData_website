@@ -109,7 +109,7 @@
 
 .mmt-filters__grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
 }
 
@@ -168,6 +168,43 @@
   box-shadow: var(--mmt-shadow-hover);
 }
 
+.mmt-trip-card--cancelled {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  opacity: 0.88;
+  position: relative;
+}
+
+.mmt-trip-card--cancelled::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #dc2626;
+  border-radius: 10px 0 0 10px;
+}
+
+.mmt-trip-card--cancelled .mmt-trip-card__top {
+  background: linear-gradient(to right, #ececec, #f3f4f6);
+}
+
+.mmt-trip-card--cancelled .mmt-trip-card__hotel,
+.mmt-trip-card--cancelled .mmt-trip-card__price-value {
+  color: #6b7280;
+}
+
+.mmt-trip-card--cancelled .mmt-trip-card__thumb {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  border-color: #d1d5db;
+  filter: grayscale(0.4);
+}
+
+.mmt-trip-card--cancelled:hover {
+  box-shadow: var(--mmt-shadow);
+}
+
 .mmt-trip-card__top {
   display: flex;
   align-items: center;
@@ -198,8 +235,39 @@
 
 .mmt-trip-card__badges {
   display: flex;
-  gap: 6px;
+  gap: 12px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.mmt-labeled-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mmt-labeled-badge__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mmt-muted);
+  white-space: nowrap;
+}
+
+.mmt-modal__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.mmt-modal__badges .mmt-labeled-badge__label {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.mmt-modal__badges .mmt-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* Status badges */
@@ -237,6 +305,94 @@
   background: #eff6ff;
   color: var(--mmt-blue-dark);
   border: 1px solid #bfdbfe;
+}
+
+.mmt-badge--customer {
+  text-transform: capitalize;
+}
+
+.mmt-badge--empty {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.mmt-badge--responded {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.mmt-badge--cancelled {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Customer response panel */
+.mmt-panel--customer-response {
+  margin-bottom: 16px;
+  background: #fff;
+}
+
+.mmt-customer-response {
+  background: #fafafa;
+  border: 1px solid var(--mmt-border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.mmt-customer-response--cancelled {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.mmt-customer-response--empty {
+  background: #f9fafb;
+}
+
+.mmt-customer-response__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mmt-customer-response__status > span {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mmt-muted);
+}
+
+.mmt-customer-response__note {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--mmt-border);
+}
+
+.mmt-customer-response__note span {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mmt-muted);
+  margin-bottom: 6px;
+}
+
+.mmt-customer-response__note p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--mmt-text);
+  line-height: 1.5;
+}
+
+.mmt-customer-response__empty-text {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--mmt-muted);
 }
 
 /* Card body */
@@ -571,18 +727,6 @@
   margin: 0 0 10px;
   font-size: 14px;
   opacity: 0.9;
-}
-
-.mmt-modal__badges {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.mmt-modal__badges .mmt-badge {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .mmt-modal__close {
