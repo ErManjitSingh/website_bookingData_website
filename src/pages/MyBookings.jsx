@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   fetchBookings,
   updateBookingTourCompleted,
+  deleteBooking,
   TOUR_STATUS_OPTIONS,
   PAYMENT_STATUS_OPTIONS,
 } from '../api/bookings'
@@ -9,9 +10,17 @@ import './MyBookings.css'
 
 function formatDate(dateStr) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', {
+    weekday: 'short',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+  })
+}
+
+function formatDateShort(dateStr) {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
   })
 }
 
@@ -21,6 +30,20 @@ function formatCurrency(amount, currency = 'INR') {
     currency,
     maximumFractionDigits: 0,
   }).format(amount)
+}
+
+function getCustomerPayableTotal(booking) {
+  return booking.pricing?.payableTotal ?? booking.pricing?.total ?? 0
+}
+
+function getHotelPayableAmount(booking) {
+  return booking.totalamountwith25 ?? 0
+}
+
+function getCompanyCommission(booking) {
+  const customerTotal = getCustomerPayableTotal(booking)
+  const hotelTotal = getHotelPayableAmount(booking)
+  return Math.max(0, customerTotal - hotelTotal)
 }
 
 function normalizeStatus(status) {
@@ -33,9 +56,13 @@ function toDateKey(isoString) {
   return new Date(isoString).toISOString().slice(0, 10)
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, type }) {
   const normalized = normalizeStatus(status)
-  return <span className={`status-badge status-badge--${normalized}`}>{status}</span>
+  return (
+    <span className={`mmt-badge mmt-badge--${normalized} mmt-badge--${type}`}>
+      {status}
+    </span>
+  )
 }
 
 function BookingFilters({ filters, onChange, onClear }) {
@@ -46,33 +73,39 @@ function BookingFilters({ filters, onChange, onClear }) {
     filters.tourCompleted !== 'all'
 
   return (
-    <div className="bookings-filters">
-      <div className="bookings-filters__row">
-        <label className="bookings-filters__field">
-          <span>Created From</span>
+    <div className="mmt-filters">
+      <div className="mmt-filters__head">
+        <h3>Filter Bookings</h3>
+        {hasActiveFilters && (
+          <button type="button" className="mmt-filters__clear" onClick={onClear}>
+            Clear all
+          </button>
+        )}
+      </div>
+      <div className="mmt-filters__grid">
+        <label className="mmt-filters__field">
+          <span>From Date</span>
           <input
             type="date"
             value={filters.dateFrom}
             onChange={(e) => onChange({ ...filters, dateFrom: e.target.value })}
           />
         </label>
-
-        <label className="bookings-filters__field">
-          <span>Created To</span>
+        <label className="mmt-filters__field">
+          <span>To Date</span>
           <input
             type="date"
             value={filters.dateTo}
             onChange={(e) => onChange({ ...filters, dateTo: e.target.value })}
           />
         </label>
-
-        <label className="bookings-filters__field">
-          <span>Payment</span>
+        <label className="mmt-filters__field">
+          <span>Payment Status</span>
           <select
             value={filters.payment}
             onChange={(e) => onChange({ ...filters, payment: e.target.value })}
           >
-            <option value="all">All</option>
+            <option value="all">All Payments</option>
             {PAYMENT_STATUS_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
                 {opt.charAt(0).toUpperCase() + opt.slice(1)}
@@ -80,14 +113,13 @@ function BookingFilters({ filters, onChange, onClear }) {
             ))}
           </select>
         </label>
-
-        <label className="bookings-filters__field">
-          <span>Tour Completed</span>
+        <label className="mmt-filters__field">
+          <span>Tour Status</span>
           <select
             value={filters.tourCompleted}
             onChange={(e) => onChange({ ...filters, tourCompleted: e.target.value })}
           >
-            <option value="all">All</option>
+            <option value="all">All Tours</option>
             {TOUR_STATUS_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
                 {opt.charAt(0).toUpperCase() + opt.slice(1)}
@@ -96,12 +128,6 @@ function BookingFilters({ filters, onChange, onClear }) {
           </select>
         </label>
       </div>
-
-      {hasActiveFilters && (
-        <button type="button" className="bookings-filters__clear" onClick={onClear}>
-          Clear filters
-        </button>
-      )}
     </div>
   )
 }
@@ -142,44 +168,146 @@ function BookingDetailModal({ booking, onClose, onTourStatusUpdate }) {
     }
   }
 
+  const roomSummary = booking.rooms?.map((r) => r.roomName).join(', ') ?? ''
+
   return (
-    <div className="modal-overlay" onClick={onClose} role="presentation">
+    <div className="mmt-modal-overlay" onClick={onClose} role="presentation">
       <div
-        className="modal"
+        className="mmt-modal"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-modal-title"
       >
-        <div className="modal__header">
-          <div>
-            <h3 id="booking-modal-title" className="modal__title">
-              {booking.property.title}
-            </h3>
-            <p className="modal__subtitle">{booking.property.location}</p>
+        <div className="mmt-modal__hero">
+          <div className="mmt-modal__hero-img">
+            <span className="mmt-modal__hero-icon">🏨</span>
           </div>
-          <button type="button" className="modal__close" onClick={onClose} aria-label="Close">
-            ×
+          <div className="mmt-modal__hero-info">
+            <p className="mmt-modal__booking-id">
+              Booking ID: <strong>{booking._id.slice(-8).toUpperCase()}</strong>
+            </p>
+            <h2 id="booking-modal-title">{booking.property.title}</h2>
+            <p className="mmt-modal__location">{booking.property.location}</p>
+            <div className="mmt-modal__badges">
+              <StatusBadge status={booking.payment} type="payment" />
+              <StatusBadge status={booking.tourCompleted} type="tour" />
+            </div>
+          </div>
+          <button type="button" className="mmt-modal__close" onClick={onClose} aria-label="Close">
+            ✕
           </button>
         </div>
 
-        <div className="modal__body">
-          <div className="modal__status-row">
-            <div className="modal__status-item">
-              <span className="modal__label">Payment Status</span>
-              <StatusBadge status={booking.payment} />
+        <div className="mmt-modal__body">
+          <div className="mmt-modal__timeline">
+            <div className="mmt-modal__date-block">
+              <span className="mmt-modal__date-label">Check-in</span>
+              <strong>{formatDate(booking.stay.checkIn)}</strong>
             </div>
-            <div className="modal__status-item">
-              <span className="modal__label">Tour Completed</span>
-              <StatusBadge status={booking.tourCompleted} />
+            <div className="mmt-modal__date-mid">
+              <span className="mmt-modal__nights-pill">
+                {booking.stay.nights} Night{booking.stay.nights !== 1 ? 's' : ''}
+              </span>
+              <div className="mmt-modal__date-line" />
+            </div>
+            <div className="mmt-modal__date-block mmt-modal__date-block--right">
+              <span className="mmt-modal__date-label">Check-out</span>
+              <strong>{formatDate(booking.stay.checkOut)}</strong>
             </div>
           </div>
 
-          <section className="modal__section modal__section--update">
-            <h4>Update Tour Completed</h4>
-            <div className="modal__update-row">
+          <div className="mmt-modal__stats">
+            <div className="mmt-modal__stat">
+              <span>Rooms</span>
+              <strong>{booking.totalRooms}</strong>
+            </div>
+            <div className="mmt-modal__stat">
+              <span>Guests</span>
+              <strong>
+                {booking.guests.adults} Adult{booking.guests.adults !== 1 ? 's' : ''}
+                {booking.guests.children > 0 && `, ${booking.guests.children} Child`}
+              </strong>
+            </div>
+            <div className="mmt-modal__stat">
+              <span>Room Type</span>
+              <strong>{roomSummary || '—'}</strong>
+            </div>
+          </div>
+
+          <div className="mmt-modal__grid">
+            <section className="mmt-panel">
+              <h3 className="mmt-panel__title">Room Details</h3>
+              <ul className="mmt-room-list">
+                {booking.rooms.map((room, idx) => (
+                  <li key={room.roomId + idx} className="mmt-room">
+                    <div className="mmt-room__top">
+                      <div>
+                        <p className="mmt-room__name">{room.roomName}</p>
+                        <p className="mmt-room__plan">{room.mealPlanLabel}</p>
+                      </div>
+                      <p className="mmt-room__price">
+                        {formatCurrency(room.pricing.total, booking.pricing.currency)}
+                      </p>
+                    </div>
+                    <p className="mmt-room__meta">
+                      {room.roomCount} room{room.roomCount !== 1 ? 's' : ''} · {room.nights} night
+                      {room.nights !== 1 ? 's' : ''}
+                      {room.occupancyLabel && ` · ${room.occupancyLabel}`}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <aside className="mmt-panel mmt-panel--sidebar">
+              <h3 className="mmt-panel__title">Price Summary</h3>
+              <div className="mmt-price-card">
+                {/* <div className="mmt-price-row">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(booking.pricing.subtotal, booking.pricing.currency)}</span>
+                </div>
+                <div className="mmt-price-row">
+                  <span>GST</span>
+                  <span>{formatCurrency(booking.pricing.gst, booking.pricing.currency)}</span>
+                </div> */}
+                {booking.pricing.memberDiscount > 0 && (
+                  <div className="mmt-price-row mmt-price-row--discount">
+                    <span>Member Discount</span>
+                    <span>
+                      -{formatCurrency(booking.pricing.memberDiscount, booking.pricing.currency)}
+                    </span>
+                  </div>
+                )}
+                <div className="mmt-price-row mmt-price-row--customer">
+                  <span>Total from Customer</span>
+                  <span>{formatCurrency(getCustomerPayableTotal(booking), booking.pricing.currency)}</span>
+                </div>
+                <div className="mmt-price-row mmt-price-row--hotel">
+                  <span>Total to Hotel</span>
+                  <span>{formatCurrency(getHotelPayableAmount(booking), booking.pricing.currency)}</span>
+                </div>
+                <div className="mmt-price-row mmt-price-row--commission">
+                  <span>Company Commission</span>
+                  <span>{formatCurrency(getCompanyCommission(booking), booking.pricing.currency)}</span>
+                </div>
+              </div>
+
+              <h3 className="mmt-panel__title">Guest Details</h3>
+              <div className="mmt-guest-card">
+                <p><span>Name</span>{booking.guest.fullName}</p>
+                <p><span>Email</span>{booking.guest.email}</p>
+                <p><span>Mobile</span>{booking.guest.mobile}</p>
+                <p><span>Country</span>{booking.guest.country}</p>
+              </div>
+            </aside>
+          </div>
+
+          <section className="mmt-panel mmt-panel--update">
+            <h3 className="mmt-panel__title">Update Tour Status</h3>
+            <div className="mmt-update-row">
               <select
-                className="modal__select"
+                className="mmt-select"
                 value={tourStatus}
                 onChange={(e) => setTourStatus(e.target.value)}
                 disabled={updating}
@@ -192,102 +320,28 @@ function BookingDetailModal({ booking, onClose, onTourStatusUpdate }) {
               </select>
               <button
                 type="button"
-                className="modal__update-btn"
+                className="mmt-btn mmt-btn--primary"
                 onClick={handleUpdateTourStatus}
                 disabled={
                   updating ||
                   normalizeStatus(tourStatus) === normalizeStatus(booking.tourCompleted)
                 }
               >
-                {updating ? 'Updating…' : 'Update'}
+                {updating ? 'Updating…' : 'Update Status'}
               </button>
             </div>
             {updateError && (
-              <p className="modal__update-error" role="alert">
+              <p className="mmt-error" role="alert">
                 {updateError}
               </p>
             )}
           </section>
 
-          <section className="modal__section">
-            <h4>Room Details</h4>
-            <ul className="modal__room-list">
-              {booking.rooms.map((room, idx) => (
-                <li key={room.roomId + idx} className="room-item">
-                  <div className="room-item__main">
-                    <span className="room-item__name">{room.roomName}</span>
-                    <span className="room-item__plan">{room.mealPlanLabel}</span>
-                  </div>
-                  <div className="room-item__meta">
-                    <span>
-                      {room.roomCount} room{room.roomCount !== 1 ? 's' : ''} · {room.nights} night
-                      {room.nights !== 1 ? 's' : ''}
-                    </span>
-                    <span className="room-item__price">
-                      {formatCurrency(room.pricing.total, booking.pricing.currency)}
-                    </span>
-                  </div>
-                  {room.occupancyLabel && (
-                    <p className="room-item__occupancy">{room.occupancyLabel}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="modal__section">
-            <h4>Guest Information</h4>
-            <div className="modal__info-grid">
-              <div>
-                <span className="modal__label">Name</span>
-                <span>{booking.guest.fullName}</span>
-              </div>
-              <div>
-                <span className="modal__label">Email</span>
-                <span>{booking.guest.email}</span>
-              </div>
-              <div>
-                <span className="modal__label">Mobile</span>
-                <span>{booking.guest.mobile}</span>
-              </div>
-              <div>
-                <span className="modal__label">Country</span>
-                <span>{booking.guest.country}</span>
-              </div>
-            </div>
-          </section>
-
-          <section className="modal__section">
-            <h4>Pricing</h4>
-            <div className="booking-card__pricing">
-              <div className="pricing-row">
-                <span>Subtotal</span>
-                <span>{formatCurrency(booking.pricing.subtotal, booking.pricing.currency)}</span>
-              </div>
-              <div className="pricing-row">
-                <span>GST</span>
-                <span>{formatCurrency(booking.pricing.gst, booking.pricing.currency)}</span>
-              </div>
-              {booking.pricing.memberDiscount > 0 && (
-                <div className="pricing-row">
-                  <span>Member Discount</span>
-                  <span>
-                    -{formatCurrency(booking.pricing.memberDiscount, booking.pricing.currency)}
-                  </span>
-                </div>
-              )}
-              <div className="pricing-row pricing-row--total">
-                <span>Total Payable</span>
-                <span>{formatCurrency(booking.pricing.payableTotal, booking.pricing.currency)}</span>
-              </div>
-            </div>
-          </section>
-
-          <p className="modal__booked-date">
+          <p className="mmt-modal__booked">
             Booked on{' '}
             {new Date(booking.createdAt).toLocaleDateString('en-IN', {
               day: 'numeric',
-              month: 'short',
+              month: 'long',
               year: 'numeric',
               hour: '2-digit',
               minute: '2-digit',
@@ -299,44 +353,88 @@ function BookingDetailModal({ booking, onClose, onTourStatusUpdate }) {
   )
 }
 
-function BookingCard({ booking, onViewDetail }) {
+function BookingCard({ booking, onViewDetail, onDelete, deleting }) {
+  const roomName = booking.rooms?.[0]?.roomName ?? 'Hotel Room'
+  const customerTotal = getCustomerPayableTotal(booking)
+
   return (
-    <article className="booking-card">
-      <div className="booking-card__grid">
-        <div className="booking-card__detail">
-          <span className="booking-card__label">Check-in</span>
-          <span className="booking-card__value">{formatDate(booking.stay.checkIn)}</span>
-        </div>
-        <div className="booking-card__detail">
-          <span className="booking-card__label">Check-out</span>
-          <span className="booking-card__value">{formatDate(booking.stay.checkOut)}</span>
-        </div>
-        <div className="booking-card__detail">
-          <span className="booking-card__label">Nights</span>
-          <span className="booking-card__value">{booking.stay.nights}</span>
-        </div>
-        <div className="booking-card__detail">
-          <span className="booking-card__label">Rooms</span>
-          <span className="booking-card__value">{booking.totalRooms}</span>
-        </div>
-        <div className="booking-card__detail">
-          <span className="booking-card__label">Guests</span>
-          <span className="booking-card__value">
-            {booking.guests.adults} adult{booking.guests.adults !== 1 ? 's' : ''}
-            {booking.guests.children > 0 && `, ${booking.guests.children} child`}
+    <article className="mmt-trip-card">
+      <div className="mmt-trip-card__top">
+        <div className="mmt-trip-card__top-left">
+          <span className="mmt-trip-card__id">
+            ID: {booking._id.slice(-8).toUpperCase()}
+          </span>
+          <span className="mmt-trip-card__dot">•</span>
+          <span className="mmt-trip-card__booked">
+            Booked{' '}
+            {new Date(booking.createdAt).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })}
           </span>
         </div>
-        <div className="booking-card__detail">
-          <span className="booking-card__label">Booking ID</span>
-          <span className="booking-card__value booking-card__value--mono">
-            {booking._id.slice(-8).toUpperCase()}
-          </span>
+        <div className="mmt-trip-card__badges">
+          <StatusBadge status={booking.payment} type="payment" />
+          <StatusBadge status={booking.tourCompleted} type="tour" />
         </div>
       </div>
 
-      <div className="booking-card__actions">
-        <button type="button" className="booking-card__view-btn" onClick={onViewDetail}>
-          View Detail
+      <div className="mmt-trip-card__body">
+        <div className="mmt-trip-card__thumb">
+          <span>🏨</span>
+          <small>{booking.property.category ? booking.property.category.charAt(0).toUpperCase() + booking.property.category.slice(1) : 'Hotel'}</small>
+        </div>
+
+        <div className="mmt-trip-card__info">
+          <h3 className="mmt-trip-card__hotel">{booking.property.title}</h3>
+          <p className="mmt-trip-card__location">{booking.property.location}</p>
+          <p className="mmt-trip-card__room">{roomName}</p>
+          <p className="mmt-trip-card__guests">
+            {booking.guests.adults} Adult{booking.guests.adults !== 1 ? 's' : ''}
+            {booking.guests.children > 0 && `, ${booking.guests.children} Child`}
+            {' · '}
+            {booking.totalRooms} Room{booking.totalRooms !== 1 ? 's' : ''}
+          </p>
+        </div>
+
+        <div className="mmt-trip-card__dates">
+          <div className="mmt-trip-card__date">
+            <span>CHECK-IN</span>
+            <strong>{formatDateShort(booking.stay.checkIn)}</strong>
+            <small>{new Date(booking.stay.checkIn + 'T00:00:00').getFullYear()}</small>
+          </div>
+          <div className="mmt-trip-card__duration">
+            <span>{booking.stay.nights}N</span>
+            <div className="mmt-trip-card__arrow" />
+          </div>
+          <div className="mmt-trip-card__date">
+            <span>CHECK-OUT</span>
+            <strong>{formatDateShort(booking.stay.checkOut)}</strong>
+            <small>{new Date(booking.stay.checkOut + 'T00:00:00').getFullYear()}</small>
+          </div>
+        </div>
+
+        <div className="mmt-trip-card__price">
+          <span className="mmt-trip-card__price-label">Total Amount</span>
+          <strong className="mmt-trip-card__price-value">
+            {formatCurrency(customerTotal, booking.pricing?.currency)}
+          </strong>
+          <span className="mmt-trip-card__price-note">incl. taxes</span>
+        </div>
+      </div>
+
+      <div className="mmt-trip-card__footer">
+        <button type="button" className="mmt-btn mmt-btn--outline" onClick={onViewDetail}>
+          View Details
+        </button>
+        <button
+          type="button"
+          className="mmt-btn mmt-btn--danger"
+          onClick={onDelete}
+          disabled={deleting}
+        >
+          {deleting ? 'Deleting…' : 'Delete Booking'}
         </button>
       </div>
     </article>
@@ -357,10 +455,7 @@ function filterBookings(bookings, filters) {
     if (filters.dateFrom && createdDate < filters.dateFrom) return false
     if (filters.dateTo && createdDate > filters.dateTo) return false
 
-    if (
-      filters.payment !== 'all' &&
-      normalizeStatus(booking.payment) !== filters.payment
-    ) {
+    if (filters.payment !== 'all' && normalizeStatus(booking.payment) !== filters.payment) {
       return false
     }
 
@@ -381,6 +476,7 @@ export default function MyBookings() {
   const [error, setError] = useState(null)
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
+  const [deletingId, setDeletingId] = useState(null)
 
   const filteredBookings = useMemo(
     () => filterBookings(bookings, filters),
@@ -425,20 +521,42 @@ export default function MyBookings() {
     )
   }
 
+  const handleDelete = async (booking) => {
+    const label = booking._id.slice(-8).toUpperCase()
+    if (
+      !window.confirm(
+        `Delete booking ${label} for ${booking.property?.title ?? 'this property'}? This cannot be undone.`,
+      )
+    ) {
+      return
+    }
+
+    setDeletingId(booking._id)
+    try {
+      await deleteBooking(booking._id)
+      setBookings((prev) => prev.filter((b) => b._id !== booking._id))
+      setSelectedBooking((prev) => (prev?._id === booking._id ? null : prev))
+    } catch (err) {
+      alert(err.message ?? 'Failed to delete booking')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="bookings-state">
+      <div className="mmt-state">
         <div className="bookings-spinner" />
-        <p>Loading bookings…</p>
+        <p>Loading your bookings…</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="bookings-state bookings-state--error">
+      <div className="mmt-state mmt-state--error">
         <p>{error}</p>
-        <button type="button" onClick={() => window.location.reload()}>
+        <button type="button" className="mmt-btn mmt-btn--primary" onClick={() => window.location.reload()}>
           Retry
         </button>
       </div>
@@ -447,12 +565,15 @@ export default function MyBookings() {
 
   return (
     <div className="bookings-page">
-      <div className="bookings-page__header">
-        <h2>My Bookings</h2>
-        <p>
-          {filteredBookings.length} of {bookings.length} booking
-          {bookings.length !== 1 ? 's' : ''}
-        </p>
+      <div className="mmt-page-header">
+        <div>
+          <h1>My Bookings</h1>
+          <p>Manage and track all your hotel reservations</p>
+        </div>
+        <div className="mmt-page-header__count">
+          <strong>{filteredBookings.length}</strong>
+          <span>Active booking{filteredBookings.length !== 1 ? 's' : ''}</span>
+        </div>
       </div>
 
       <BookingFilters
@@ -462,20 +583,26 @@ export default function MyBookings() {
       />
 
       {bookings.length === 0 ? (
-        <div className="bookings-state">
-          <p>No bookings found.</p>
+        <div className="mmt-empty">
+          <span className="mmt-empty__icon">📋</span>
+          <h3>No bookings yet</h3>
+          <p>Your hotel bookings will appear here once created.</p>
         </div>
       ) : filteredBookings.length === 0 ? (
-        <div className="bookings-state">
-          <p>No bookings match the selected filters.</p>
+        <div className="mmt-empty">
+          <span className="mmt-empty__icon">🔍</span>
+          <h3>No matches found</h3>
+          <p>Try adjusting your filters to see more bookings.</p>
         </div>
       ) : (
-        <div className="bookings-list">
+        <div className="mmt-trip-list">
           {filteredBookings.map((booking) => (
             <BookingCard
               key={booking._id}
               booking={booking}
               onViewDetail={() => setSelectedBooking(booking)}
+              onDelete={() => handleDelete(booking)}
+              deleting={deletingId === booking._id}
             />
           ))}
         </div>
@@ -483,9 +610,7 @@ export default function MyBookings() {
 
       {selectedBooking && (
         <BookingDetailModal
-          booking={
-            bookings.find((b) => b._id === selectedBooking._id) ?? selectedBooking
-          }
+          booking={bookings.find((b) => b._id === selectedBooking._id) ?? selectedBooking}
           onClose={() => setSelectedBooking(null)}
           onTourStatusUpdate={handleTourStatusUpdate}
         />

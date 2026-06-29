@@ -33,3 +33,15 @@ export async function updateBookingTourCompleted(id, tourCompleted) {
 
   return json.data ?? json
 }
+
+export async function deleteBooking(id) {
+  const response = await fetch(`${API_BASE}/delete/${id}`, { method: 'DELETE' })
+  const json = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(json.message ?? `Failed to delete booking (${response.status})`)
+  }
+  if (json.success === false) {
+    throw new Error(json.message ?? 'Failed to delete booking')
+  }
+}
