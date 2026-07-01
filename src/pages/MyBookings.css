@@ -109,7 +109,7 @@
 
 .mmt-filters__grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
 }
 
@@ -329,10 +329,28 @@
   border: 1px solid #fecaca;
 }
 
+.mmt-badge--hotel.mmt-badge--accepted {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.mmt-badge--hotel.mmt-badge--rejected {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
 /* Customer response panel */
-.mmt-panel--customer-response {
+.mmt-panel--customer-response,
+.mmt-panel--hotel-response {
   margin-bottom: 16px;
   background: #fff;
+}
+
+.mmt-hotel-response--accepted {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
 }
 
 .mmt-customer-response {

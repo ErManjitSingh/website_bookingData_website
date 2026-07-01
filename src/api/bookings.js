@@ -2,6 +2,7 @@ const API_BASE = 'https://packagemakerbackend.demandsetutours.com/api/inventoryb
 
 export const TOUR_STATUS_OPTIONS = ['pending', 'completed', 'rejected']
 export const PAYMENT_STATUS_OPTIONS = ['pending', 'completed', 'rejected']
+export const HOTEL_RESPONSE_OPTIONS = ['accept', 'rejected']
 
 export async function fetchBookings() {
   const response = await fetch(`${API_BASE}/get`)

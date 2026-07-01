@@ -5,6 +5,7 @@ import {
   deleteBooking,
   TOUR_STATUS_OPTIONS,
   PAYMENT_STATUS_OPTIONS,
+  HOTEL_RESPONSE_OPTIONS,
 } from '../api/bookings'
 import './MyBookings.css'
 
@@ -99,6 +100,76 @@ function CustomerResponseBadge({ booking }) {
   )
 }
 
+function getHotelResponseInfo(booking) {
+  const status = (booking.hotelResponse ?? '').toString().toLowerCase().trim()
+
+  if (!status) {
+    return {
+      hasResponse: false,
+      isAccepted: false,
+      isRejected: false,
+      label: 'Pending',
+      status: null,
+    }
+  }
+
+  const isAccepted = status === 'accept' || status === 'accepted'
+  const isRejected = status === 'reject' || status === 'rejected'
+
+  return {
+    hasResponse: true,
+    isAccepted,
+    isRejected,
+    label: isAccepted ? 'Accepted' : isRejected ? 'Rejected' : status,
+    status: booking.hotelResponse,
+  }
+}
+
+function HotelResponseBadge({ booking }) {
+  const info = getHotelResponseInfo(booking)
+
+  if (!info.hasResponse) {
+    return <span className="mmt-badge mmt-badge--hotel mmt-badge--empty">Pending</span>
+  }
+
+  if (info.isAccepted) {
+    return <span className="mmt-badge mmt-badge--hotel mmt-badge--accepted">Accepted</span>
+  }
+
+  if (info.isRejected) {
+    return <span className="mmt-badge mmt-badge--hotel mmt-badge--rejected">Rejected</span>
+  }
+
+  return <span className="mmt-badge mmt-badge--hotel mmt-badge--responded">{info.label}</span>
+}
+
+function HotelResponsePanel({ booking }) {
+  const info = getHotelResponseInfo(booking)
+
+  return (
+    <section className="mmt-panel mmt-panel--hotel-response">
+      <h3 className="mmt-panel__title">Hotel Response</h3>
+      <div
+        className={`mmt-customer-response mmt-hotel-response ${info.isRejected ? 'mmt-customer-response--cancelled' : ''} ${info.isAccepted ? 'mmt-hotel-response--accepted' : ''} ${!info.hasResponse ? 'mmt-customer-response--empty' : ''}`}
+      >
+        <div className="mmt-customer-response__status">
+          <span>Status</span>
+          <HotelResponseBadge booking={booking} />
+        </div>
+        <p className="mmt-customer-response__empty-text">
+          {!info.hasResponse
+            ? 'Hotel has not responded to this booking yet.'
+            : info.isAccepted
+              ? 'Hotel has accepted this booking.'
+              : info.isRejected
+                ? 'Hotel has rejected this booking.'
+                : 'Hotel has submitted a response.'}
+        </p>
+      </div>
+    </section>
+  )
+}
+
 function CustomerResponsePanel({ booking }) {
   const info = getCustomerResponseInfo(booking)
 
@@ -153,7 +224,8 @@ function BookingFilters({ filters, onChange, onClear }) {
     filters.dateTo ||
     filters.payment !== 'all' ||
     filters.tourCompleted !== 'all' ||
-    filters.customerCancelled !== 'all'
+    filters.customerCancelled !== 'all' ||
+    filters.hotelResponse !== 'all'
 
   return (
     <div className="mmt-filters">
@@ -219,6 +291,21 @@ function BookingFilters({ filters, onChange, onClear }) {
             <option value="all">All Bookings</option>
             <option value="cancelled">Cancelled Only</option>
             <option value="active">Not Cancelled</option>
+          </select>
+        </label>
+        <label className="mmt-filters__field">
+          <span>Hotel Response</span>
+          <select
+            value={filters.hotelResponse}
+            onChange={(e) => onChange({ ...filters, hotelResponse: e.target.value })}
+          >
+            <option value="all">All Responses</option>
+            <option value="pending">Pending</option>
+            {HOTEL_RESPONSE_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt.charAt(0).toUpperCase() + opt.slice(1)}
+              </option>
+            ))}
           </select>
         </label>
       </div>
@@ -293,6 +380,9 @@ function BookingDetailModal({ booking, onClose, onTourStatusUpdate }) {
               <LabeledBadge label="Customer Response">
                 <CustomerResponseBadge booking={booking} />
               </LabeledBadge>
+              <LabeledBadge label="Hotel Response">
+                <HotelResponseBadge booking={booking} />
+              </LabeledBadge>
             </div>
           </div>
           <button type="button" className="mmt-modal__close" onClick={onClose} aria-label="Close">
@@ -337,6 +427,7 @@ function BookingDetailModal({ booking, onClose, onTourStatusUpdate }) {
           </div>
 
           <CustomerResponsePanel booking={booking} />
+          <HotelResponsePanel booking={booking} />
 
           <div className="mmt-modal__grid">
             <section className="mmt-panel">
@@ -459,10 +550,12 @@ function BookingDetailModal({ booking, onClose, onTourStatusUpdate }) {
 function BookingCard({ booking, onViewDetail, onDelete, deleting }) {
   const roomName = booking.rooms?.[0]?.roomName ?? 'Hotel Room'
   const customerTotal = getCustomerPayableTotal(booking)
-  const isCancelled = getCustomerResponseInfo(booking).isCancelled
+  const isCustomerCancelled = getCustomerResponseInfo(booking).isCancelled
+  const isHotelRejected = getHotelResponseInfo(booking).isRejected
+  const isDimmed = isCustomerCancelled || isHotelRejected
 
   return (
-    <article className={`mmt-trip-card ${isCancelled ? 'mmt-trip-card--cancelled' : ''}`}>
+    <article className={`mmt-trip-card ${isDimmed ? 'mmt-trip-card--cancelled' : ''}`}>
       <div className="mmt-trip-card__top">
         <div className="mmt-trip-card__top-left">
           <span className="mmt-trip-card__id">
@@ -487,6 +580,9 @@ function BookingCard({ booking, onViewDetail, onDelete, deleting }) {
           </LabeledBadge>
           <LabeledBadge label="Customer Response">
             <CustomerResponseBadge booking={booking} />
+          </LabeledBadge>
+          <LabeledBadge label="Hotel Response">
+            <HotelResponseBadge booking={booking} />
           </LabeledBadge>
         </div>
       </div>
@@ -558,12 +654,14 @@ const DEFAULT_FILTERS = {
   payment: 'all',
   tourCompleted: 'all',
   customerCancelled: 'all',
+  hotelResponse: 'all',
 }
 
 function filterBookings(bookings, filters) {
   return bookings.filter((booking) => {
     const createdDate = toDateKey(booking.createdAt)
-    const isCancelled = getCustomerResponseInfo(booking).isCancelled
+    const isCustomerCancelled = getCustomerResponseInfo(booking).isCancelled
+    const hotelInfo = getHotelResponseInfo(booking)
 
     if (filters.dateFrom && createdDate < filters.dateFrom) return false
     if (filters.dateTo && createdDate > filters.dateTo) return false
@@ -579,8 +677,12 @@ function filterBookings(bookings, filters) {
       return false
     }
 
-    if (filters.customerCancelled === 'cancelled' && !isCancelled) return false
-    if (filters.customerCancelled === 'active' && isCancelled) return false
+    if (filters.customerCancelled === 'cancelled' && !isCustomerCancelled) return false
+    if (filters.customerCancelled === 'active' && isCustomerCancelled) return false
+
+    if (filters.hotelResponse === 'pending' && hotelInfo.hasResponse) return false
+    if (filters.hotelResponse === 'accept' && !hotelInfo.isAccepted) return false
+    if (filters.hotelResponse === 'rejected' && !hotelInfo.isRejected) return false
 
     return true
   })
